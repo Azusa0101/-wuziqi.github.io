@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页版五子棋对战游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 900px;
+            max-width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #165DFF;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid #eee;
+        }
+        .tab {
+            padding: 15px 0;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+        }
+        .tab.active {
+            border-bottom: 3px solid #165DFF;
+            color: #165DFF;
+            font-weight: bold;
+        }
+        .tab:hover:not(.active) {
+            background: #f8f9fa;
+        }
+        .content {
+            padding: 30px;
+            display: none;
+        }
+        .content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #165DFF;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-primary {
+            background: #165DFF;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0F4CD0;
+        }
+        .btn-danger {
+            background: #FF4D4F;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #E03E40;
+        }
+        .error-message {
+            color: #FF4D4F;
+            margin: 10px 0;
+            text-align: center;
+            height: 20px;
+        }
+        /* 游戏面板样式 */
+        .game-wrapper {
+            display: flex;
+            justify-content: space-between;
+        }
+        .game-info {
+            width: 220px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .info-label {
+            color: #666;
+        }
+        .info-value {
+            color: #165DFF;
+            font-weight: 500;
+        }
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            color: #FF4D4F;
+        }
+        .player-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .player {
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            width: 48%;
+        }
+        .player.current {
+            background: #E8F3FF;
+            border: 2px solid #165DFF;
+        }
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .avatar-black {
+            background: #333;
+            color: white;
+        }
+        .avatar-white {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        /* 棋盘样式 */
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            width: 560px;
+            height: 560px;
+            background: #DEB887;
+            border: 10px solid #DEB887;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .chess-cell {
+            position: relative;
+            border: 1px solid #A0522D;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .chess-cell:hover:not(.has-chess) {
+            background: #D2B48C;
+        }
+        .chess {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .chess-black {
+            background: #333;
+        }
+        .chess-white {
+            background: white;
+        }
+        .win-chess {
+            box-shadow: 0 0 15px 2px #FFD700;
+            animation: flash 1.5s infinite;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        /* 排行榜样式 */
+        .ranking-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        .ranking-list {
+            list-style: none;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        .ranking-item:hover {
+            background: #f8f9fa;
+        }
+        .ranking-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .rank-1 {
+            background: #FFD700;
+            color: #333;
+        }
+        .rank-2 {
+            background: #C0C0C0;
+        }
+        .rank-3 {
+            background: #CD7F32;
+        }
+        .rank-other {
+            background: #eee;
+            color: #666;
+        }
+        .ranking-username {
+            flex: 1;
+            font-size: 16px;
+        }
+        .ranking-stats {
+            display: flex;
+            gap: 20px;
+            color: #666;
+        }
+        .ranking-win {
+            color: #52C41A;
+            font-weight: 500;
+        }
+        .no-ranking {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .action-buttons .btn {
+            flex: 1;
+            padding: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">五子棋对战游戏</div>
+        
+        <!-- 标签栏 -->
+        <div class="tab-container">
+            <div class="tab active" data-tab="login">登录</div>
+            <div class="tab" data-tab="register">注册</div>
+            <div class="tab" data-tab="game">开始游戏</div>
+            <div class="tab" data-tab="ranking">排行榜</div>
+        </div>
+        
+        <!-- 登录面板 -->
+        <div class="content active" id="login">
+            <div class="form-group">
+                <label for="login-username">用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <div class="error-message" id="login-error"></div>
+            <button class="btn btn-primary" onclick="login()">登录</button>
+        </div>
+        
+        <!-- 注册面板 -->
+        <div class="content" id="register">
+            <div class="form-group">
+                <label for="reg-username">用户名</label>
+                <input type="text" id="reg-username" placeholder="请设置用户名（3-12位）" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">密码</label>
+                <input type="password" id="reg-password" placeholder="请设置密码（6-16位）">
+            </div>
+            <div class="form-group">
+                <label for="reg-confirm">确认密码</label>
+                <input type="password" id="reg-confirm" placeholder="请再次输入密码">
+            </div>
+            <div class="error-message" id="reg-error"></div>
+            <button class="btn btn-primary" onclick="register()">注册</button>
+        </div>
+        
+        <!-- 游戏面板 -->
+        <div class="content" id="game">
+            <div class="game-wrapper">
+                <div class="game-info">
+                    <div class="info-card">
+                        <div class="info-title">当前用户</div>
+                        <div class="info-item">
+                            <span class="info-label">用户名：</span>
+                            <span class="info-value" id="current-username">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">总胜率：</span>
+                            <span class="info-value" id="user-win-rate">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card">
+                        <div class="info-title">游戏状态</div>
+                        <div class="timer" id="game-timer">03:00</div>
+                        <div class="player-indicator">
+                            <div class="player current" id="player-black">
+                                <div class="player-avatar avatar-black">黑</div>
+                                <div id="black-player-name">当前玩家</div>
+                            </div>
+                            <div class="player" id="player-white">
+                                <div class="player-avatar avatar-white">白</div>
+                                <div id="white-player-name">电脑</div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="startNewGame()">新游戏</button>
+                            <button class="btn btn-danger" onclick="surrender()">认输</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chessboard" id="chessboard"></div>
+            </div>
+            <div class="error-message" id="game-message"></div>
+            <button class="btn btn-danger" style="margin-top: 20px;" onclick="logout()">退出登录</button>
+        </div>
+        
+        <!-- 排行榜面板 -->
+        <div class="content" id="ranking">
+            <h2 class="ranking-title">全局排行榜（按胜率排序）</h2>
+            <ul class="ranking-list" id="global-ranking"></ul>
+            
+            <h3 class="ranking-title" style="margin-top: 30px;">我的战绩</h3>
+            <div id="my-ranking-container">
+                <ul class="ranking-list" id="my-ranking"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null; // 当前登录用户
+        let gameBoard = Array(15).fill().map(() => Array(15).fill(0)); // 0:空, 1:黑棋, 2:白棋
+        let currentPlayer = 1; // 1:黑棋, 2:白棋
+        let gameTimer = null; // 游戏计时器
+        let remainingTime = 180; // 剩余时间（秒）
+        let isGameOver = false; // 游戏是否结束
+        let isAgainstComputer = true; // 是否人机对战（默认是）
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initChessboard();
+            initTabs();
+            // 修复：初始化用户列表（防止为空）
+            if (!localStorage.getItem('userList')) {
+                localStorage.setItem('userList', '[]');
+            }
+        };
+
+        // 初始化标签切换
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 切换标签激活状态
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 切换内容显示
+                    const tabId = this.getAttribute('data-tab');
+                    document.querySelectorAll('.content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // 切换到排行榜时加载数据
+                    if (tabId === 'ranking') {
+                        loadRanking();
+                    }
+                });
+            });
+        }
+
+        // 初始化棋盘
+        function initChessboard() {
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
+            
+            // 创建15x15棋盘格子
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'chess-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    // 绑定落子事件
+                    cell.addEventListener('click', () => placeChess(row, col));
+                    
+                    chessboard.appendChild(cell);
+                }
+            }
+        }
+
+        // 注册功能（核心修复：确保用户列表正确添加）
+        function register() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPwd = document.getElementById('reg-confirm').value;
+            const errorEl = document.getElementById('reg-error');
+
+            // 验证规则
+            if (!username || username.length < 3 || username.length > 12) {
+                errorEl.textContent = '用户名必须为3-12位';
+                return;
+            }
+            if (!password || password.length < 6 || password.length > 16) {
+                errorEl.textContent = '密码必须为6-16位';
+                return;
+            }
+            if (password !== confirmPwd) {
+                errorEl.textContent = '两次密码输入不一致';
+                return;
+            }
+            if (localStorage.getItem(`user_${username}`)) {
+                errorEl.textContent = '该用户名已被注册';
+                return;
+            }
+
+            // 保存用户数据（初始战绩：0胜0负0平，确保所有字段都是数字）
+            const userData = {
+                username,
+                password,
+                win: 0,
+                lose: 0,
+                draw: 0,
+                total: 0,
+                winRate: 0
+            };
+            localStorage.setItem(`user_${username}`, JSON.stringify(userData));
+            
+            // 更新用户列表（修复：确保不重复添加）
+            let userList = JSON.parse(localStorage.getItem('userList') || '[]');
+            if (!userList.includes(username)) {
+                userList.push(username);
+                localStorage.setItem('userList', JSON.stringify(userList));
+            }
+
+            errorEl.textContent = '';
+            alert('注册成功！请登录');
+            
+            // 切换到登录面板
+            document.querySelector('.tab[data-tab="login"]').click();
+        }
+
+        // 登录功能
+        function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+
+            // 获取用户数据
+            const userStr = localStorage.getItem(`user_${username}`);
+            if (!userStr) {
+                errorEl.textContent = '用户名不存在';
+                return;
+            }
+
+            let userData = JSON.parse(userStr);
+            // 修复：确保用户数据字段完整（防止旧数据缺失字段）
+            userData = {
+                username: userData.username,
+                password: userData.password,
+                win: userData.win || 0,
+                lose: userData.lose || 0,
+                draw: userData.draw || 0,
+                total: userData.total || 0,
+                winRate: userData.winRate || 0
+            };
+
+            if (userData.password !== password) {
+                errorEl.textContent = '密码错误';
+                return;
+            }
+
+            // 登录成功
+            currentUser = userData;
+            errorEl.textContent = '';
+            
+            // 更新游戏面板用户信息
+            document.getElementById('current-username').textContent = currentUser.username;
+            updateUserWinRate();
+            
+            // 切换到游戏面板
+            document.querySelector('.tab[data-tab="game"]').click();
+            
+            // 初始化新游戏
+            startNewGame();
+        }
+
+        // 退出登录
+        function logout() {
+            // 停止计时器
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+            
+            currentUser = null;
+            currentPlayer = 1;
+            isGameOver = false;
+            gameBoard = Array(15).fill().map(() => Array(15).fill(0));
+            
+            // 重置界面
+            document.getElementById('current-username').textContent = '-';
+            document.getElementById('user-win-rate').textContent = '-';
+            document.getElementById('game-timer').textContent = '03:00';
+            
+            // 切换到登录面板
+            document.querySelector('.tab[data-tab="login"]').click();
+            initChessboard();
+        }
+
+        // 更新用户胜率
+        function updateUserWinRate() {
+            if (!currentUser) return;
+            
+            // 确保total是数字且不为0
+            currentUser.total = Number(currentUser.win) + Number(currentUser.lose) + Number(currentUser.draw);
+            // 计算胜率（保留1位小数，避免NaN）
+            const winRate = currentUser.total === 0 
+                ? 0 
+                : (Number(currentUser.win) / currentUser.total * 100).toFixed(1);
+            
+            currentUser.winRate = winRate;
+            document.getElementById('user-win-rate').textContent = `${winRate}%`;
+            
+            // 保存更新后的数据
+            localStorage.setItem(`user_${currentUser.username}`, JSON.stringify(currentUser));
+        }
+
+        // 开始新游戏
+        function startNewGame() {
+            if (!currentUser) {
+                alert('请先登录！');
+                document.querySelector('.tab[data-tab="login"]').click();
+                return;
+            }
+
+            // 重置游戏状态
+            gameBoard = Array(15).fill().map(() => Array(15).fill(0));
+            currentPlayer = 1;
+            isGameOver = false;
+            remainingTime = 180;
+            
+            // 重置界面
+            initChessboard();
+            updateTimerDisplay();
+            document.getElementById('game-message').textContent = '';
+            document.getElementById('player-black').classList.add('current');
+            document.getElementById('player-white').classList.remove('current');
+            
+            // 启动计时器
+            if (gameTimer) {
+                clearInterval(gameTimer);
+            }
+            gameTimer = setInterval(() => {
+                remainingTime--;
+                updateTimerDisplay();
+                
+                // 超时判断
+                if (remainingTime <= 0) {
+                    clearInterval(gameTimer);
+                    gameTimer = null;
+                    handleGameOver(currentPlayer === 1 ? 2 : 1, '超时');
+                }
+            }, 1000);
+        }
+
+        // 更新计时器显示
+        function updateTimerDisplay() {
+            const minutes = Math.floor(remainingTime / 60).toString().padStart(2, '0');
+            const seconds = (remainingTime % 60).toString().padStart(2, '0');
+            document.getElementById('game-timer').textContent = `${minutes}:${seconds}`;
+        }
+
+        // 落子
+        function placeChess(row, col) {
+            // 游戏结束或已有棋子，不允许落子
+            if (isGameOver || gameBoard[row][col] !== 0) {
+                return;
+            }
+
+            // 落子
+            gameBoard[row][col] = currentPlayer;
+            const cell = document.querySelector(`.chess-cell[data-row="${row}"][data-col="${col}"]`);
+            const chess = document.createElement('div');
+            chess.className = `chess chess-${currentPlayer === 1 ? 'black' : 'white'}`;
+            cell.appendChild(chess);
+            cell.classList.add('has-chess');
+
+            // 判断是否获胜
+            if (checkWin(row, col)) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+                handleGameOver(currentPlayer, '胜利');
+                return;
+            }
+
+            // 判断是否平局（棋盘满了）
+            if (checkDraw()) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+                handleGameOver(0, '平局');
+                return;
+            }
+
+            // 切换玩家
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updatePlayerIndicator();
+
+            // 如果是人机对战，电脑自动落子
+            if (isAgainstComputer && currentPlayer === 2) {
+                setTimeout(computerPlaceChess, 800);
+            }
+        }
+
+        // 电脑自动落子（简单AI：优先防守，其次进攻）
+        function computerPlaceChess() {
+            if (isGameOver) return;
+
+            // 1. 优先防守（阻止玩家形成五子）
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    if (gameBoard[row][col] === 0) {
+                        gameBoard[row][col] = 1; // 模拟玩家落子
+                        if (checkWin(row, col, true)) {
+                            gameBoard[row][col] = 0; // 恢复空位
+                            placeChess(row, col); // 电脑落子防守
+                            return;
+                        }
+                        gameBoard[row][col] = 0; // 恢复空位
+                    }
+                }
+            }
+
+            // 2. 其次进攻（自己形成五子）
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    if (gameBoard[row][col] === 0) {
+                        gameBoard[row][col] = 2; // 模拟电脑落子
+                        if (checkWin(row, col, true)) {
+                            gameBoard[row][col] = 0; // 恢复空位
+                            placeChess(row, col); // 电脑落子进攻
+                            return;
+                        }
+                        gameBoard[row][col] = 0; // 恢复空位
+                    }
+                }
+            }
+
+            // 3. 随机落子（优先中间区域）
+            const centerArea = [];
+            const otherArea = [];
+            
+            for (let row = 3; row < 12; row++) {
+                for (let col = 3; col < 12; col++) {
+                    if (gameBoard[row][col] === 0) {
+                        centerArea.push({ row, col });
+                    }
+                }
+            }
+            
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    if (gameBoard[row][col] === 0 && !centerArea.some(pos => pos.row === row && pos.col === col)) {
+                        otherArea.push({ row, col });
+                    }
+                }
+            }
+            
+            const targetArea = centerArea.length > 0 ? centerArea : otherArea;
+            const randomPos = targetArea[Math.floor(Math.random() * targetArea.length)];
+            placeChess(randomPos.row, randomPos.col);
+        }
+
+        // 检查是否获胜（isSimulation：是否为模拟落子，不显示获胜动画）
+        function checkWin(row, col, isSimulation = false) {
+            const chessType = gameBoard[row][col];
+            const directions = [
+                [0, 1],  // 水平
+                [1, 0],  // 垂直
+                [1, 1],  // 右下对角线
+                [1, -1]  // 左下对角线
+            ];
+
+            for (const [dx, dy] of directions) {
+                let count = 1; // 当前落子算1个
+                
+                // 正向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + dx * i;
+                    const newCol = col + dy * i;
+                    if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && gameBoard[newRow][newCol] === chessType) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - dx * i;
+                    const newCol = col - dy * i;
+                    if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && gameBoard[newRow][newCol] === chessType) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 五子连线，判定获胜
+                if (count >= 5) {
+                    if (!isSimulation) {
+                        // 高亮获胜的棋子
+                        highlightWinChess(row, col, dx, dy, chessType);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 高亮获胜的棋子
+        function highlightWinChess(row, col, dx, dy, chessType) {
+            // 标记当前落子
+            const currentCell = document.querySelector(`.chess-cell[data-row="${row}"][data-col="${col}"] .chess`);
+            currentCell.classList.add('win-chess');
+            
+            // 标记正向棋子
+            for (let i = 1; i < 5; i++) {
+                const newRow = row + dx * i;
+                const newCol = col + dy * i;
+                if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && gameBoard[newRow][newCol] === chessType) {
+                    const cell = document.querySelector(`.chess-cell[data-row="${newRow}"][data-col="${newCol}"] .chess`);
+                    cell.classList.add('win-chess');
+                } else {
+                    break;
+                }
+            }
+            
+            // 标记反向棋子
+            for (let i = 1; i < 5; i++) {
+                const newRow = row - dx * i;
+                const newCol = col - dy * i;
+                if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && gameBoard[newRow][newCol] === chessType) {
+                    const cell = document.querySelector(`.chess-cell[data-row="${newRow}"][data-col="${newCol}"] .chess`);
+                    cell.classList.add('win-chess');
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // 检查是否平局
+        function checkDraw() {
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    if (gameBoard[row][col] === 0) {
+                        return false; // 还有空位，不是平局
+                    }
+                }
+            }
+            return true; // 棋盘满了，平局
+        }
+
+        // 更新玩家指示器
+        function updatePlayerIndicator() {
+            if (currentPlayer === 1) {
+                document.getElementById('player-black').classList.add('current');
+                document.getElementById('player-white').classList.remove('current');
+            } else {
+                document.getElementById('player-black').classList.remove('current');
+                document.getElementById('player-white').classList.add('current');
+            }
+        }
+
+        // 处理游戏结束
+        function handleGameOver(winner, reason) {
+            isGameOver = true;
+            let message = '';
+
+            // 确保字段是数字（防止旧数据类型错误）
+            currentUser.win = Number(currentUser.win);
+            currentUser.lose = Number(currentUser.lose);
+            currentUser.draw = Number(currentUser.draw);
+            currentUser.total = Number(currentUser.total);
+
+            if (winner === 0) {
+                // 平局
+                message = `游戏结束！结果：平局（${reason}）`;
+                currentUser.draw++;
+                currentUser.total++;
+            } else if (winner === 1) {
+                // 玩家获胜（黑棋）
+                message = `游戏结束！你获胜了（${reason}）`;
+                currentUser.win++;
+                currentUser.total++;
+            } else {
+                // 电脑获胜（白棋）
+                message = `游戏结束！你失败了（${reason}）`;
+                currentUser.lose++;
+                currentUser.total++;
+            }
+
+            // 显示结果
+            document.getElementById('game-message').textContent = message;
+            alert(message);
+            
+            // 更新胜率和本地存储
+            updateUserWinRate();
+        }
+
+        // 认输
+        function surrender() {
+            if (!currentUser || isGameOver) return;
+            
+            clearInterval(gameTimer);
+            gameTimer = null;
+            handleGameOver(currentPlayer === 1 ? 2 : 1, '认输');
+        }
+
+        // 加载排行榜（核心修复：强制读取所有用户数据）
+        function loadRanking() {
+            const globalRankingEl = document.getElementById('global-ranking');
+            const myRankingEl = document.getElementById('my-ranking');
+            const myRankingContainer = document.getElementById('my-ranking-container');
+            
+            // 清空现有内容
+            globalRankingEl.innerHTML = '';
+            myRankingEl.innerHTML = '';
+
+            // 修复：直接读取所有以user_开头的本地存储项（避免依赖userList）
+            const allUsers = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('user_')) {
+                    const username = key.replace('user_', '');
+                    const userStr = localStorage.getItem(key);
+                    if (userStr) {
+                        let user = JSON.parse(userStr);
+                        // 确保用户数据字段完整且为数字
+                        user = {
+                            username: user.username,
+                            win: Number(user.win || 0),
+                            lose: Number(user.lose || 0),
+                            draw: Number(user.draw || 0),
+                            total: Number(user.total || 0),
+                            winRate: user.winRate || 0
+                        };
+                        // 重新计算胜率
+                        user.winRate = user.total === 0 ? 0 : (user.win / user.total * 100).toFixed(1);
+                        allUsers.push(user);
+                    }
+                }
+            }
+
+            // 按胜率排序（胜率相同按胜场数排序）
+            allUsers.sort((a, b) => {
+                if (parseFloat(a.winRate) !== parseFloat(b.winRate)) {
+                    return parseFloat(b.winRate) - parseFloat(a.winRate);
+                }
+                return b.win - a.win;
+            });
+
+            // 渲染全局排行榜
+            if (allUsers.length === 0) {
+                globalRankingEl.innerHTML = '<li class="no-ranking">暂无用户数据</li>';
+            } else {
+                allUsers.slice(0, 10).forEach((user, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'ranking-item';
+                    
+                    // 排名样式
+                    let rankClass = 'rank-other';
+                    if (index === 0) rankClass = 'rank-1';
+                    else if (index === 1) rankClass = 'rank-2';
+                    else if (index === 2) rankClass = 'rank-3';
+                    
+                    li.innerHTML = `
+                        <div class="ranking-rank ${rankClass}">${index + 1}</div>
+                        <div class="ranking-username">${user.username}</div>
+                        <div class="ranking-stats">
+                            <span>胜: <span class="ranking-win">${user.win}</span></span>
+                            <span>负: ${user.lose}</span>
+                            <span>胜率: ${user.winRate}%</span>
+                        </div>
+                    `;
+                    globalRankingEl.appendChild(li);
+                });
+            }
+
+            // 渲染我的战绩
+            if (!currentUser) {
+                myRankingContainer.innerHTML = '<div class="no-ranking">请先登录查看我的战绩</div>';
+            } else {
+                // 确保当前用户数据是数字
+                currentUser.win = Number(currentUser.win);
+                currentUser.lose = Number(currentUser.lose);
+                currentUser.draw = Number(currentUser.draw);
+                currentUser.winRate = Number(currentUser.winRate).toFixed(1);
+                
+                const li = document.createElement('li');
+                li.className = 'ranking-item';
+                li.innerHTML = `
+                    <div class="ranking-rank rank-other">-</div>
+                    <div class="ranking-username">${currentUser.username}</div>
+                    <div class="ranking-stats">
+                        <span>胜: <span class="ranking-win">${currentUser.win}</span></span>
+                        <span>负: ${currentUser.lose}</span>
+                        <span>平: ${currentUser.draw}</span>
+                        <span>胜率: ${currentUser.winRate}%</span>
+                    </div>
+                `;
+                myRankingEl.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>
